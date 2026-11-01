@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESDN Network Simulator</title>
+<meta name="description" content="Grow an environmental sensing network across eastern North Carolina and watch what it costs: LoRaWAN open architecture versus cellular commercial loggers, over ten years.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Roboto+Slab:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#0c161b;        /* night over the sound */
+  --surface:#132229;
+  --surface-2:#1a2e37;
+  --line:#26414c;
+  --text:#e9f0ee;
+  --muted:#93aaa6;
+  --faint:#5d7a78;
+  --lora:#3f8fe8;          /* open / LoRaWAN */
+  --lora-soft:rgba(63,143,232,.18);
+  --low:#22b283;           /* open, low budget */
+  --cell:#e0662f;          /* commercial / cellular */
+  --cell-soft:rgba(224,102,47,.18);
+  --gw:#f2f6f4;
+  --marsh:#1a3a33;
+  --land:#16282c;
+  --land-2:#1b3134;
+  --water:#0e2a3a;
+  --water-2:#123549;
+  --river:#164a63;
+  --town:#2b3d44;
+  --field:#243a2f;
+  --bad:#e5615c;
+  --display:"Figtree","Instrument Sans",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --eyebrow-font:"Roboto Slab",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+.app{height:100%;display:flex;flex-direction:column;padding:0 16px;gap:10px;padding-block:10px}
+body.embed .app{padding:8px}
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.top h1{font-family:var(--display);font-weight:700;font-size:clamp(18px,2.2vw,26px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header.top .sub{color:var(--muted);font-size:13px}
+body.embed header.top h1,body.embed header.top .sub{display:none}
+.modes{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin-left:auto}
+.modes button{border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
+.modes button .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.modes button[aria-pressed="true"]{background:var(--surface-2);color:var(--text)}
+.modes button[data-mode="cell"] .dot{background:var(--cell)}
+.modes button[data-mode="high"] .dot{background:var(--lora)}
+.modes button[data-mode="low"] .dot{background:var(--low)}
+.modes button:focus-visible,.ctl button:focus-visible,input:focus-visible{outline:2px solid var(--lora);outline-offset:2px}
+
+main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 340px;gap:12px}
+@media (max-width:860px){main{grid-template-columns:1fr;overflow:auto}}
+.stage{position:relative;background:var(--surface);border:0;border-radius:14px;overflow:hidden;min-height:320px}
+@media (max-width:860px){.stage{aspect-ratio:16/11;min-height:0}}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{pointer-events:none}
+.stage .legend{position:absolute;left:12px;bottom:10px;display:flex;gap:14px;font-size:12px;color:var(--muted);background:rgba(12,22,27,.7);padding:6px 10px;border-radius:8px;backdrop-filter:blur(4px);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend .tri{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid var(--lora);border-radius:0}
+.stage .counter{position:absolute;right:12px;bottom:10px;font-family:var(--mono);font-size:12px;color:var(--muted);background:rgba(12,22,27,.7);padding:6px 10px;border-radius:8px;text-align:right;font-variant-numeric:tabular-nums}
+.stage .counter b{color:var(--text);font-weight:600}
+.stage .hint{position:absolute;right:12px;top:64px;font-size:12px;color:var(--faint);max-width:200px;text-align:right}
+
+aside.panel{background:var(--surface);border:0;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.ctl output{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--lora);margin:2px 0}
+.mode-cell input[type=range].time{accent-color:var(--cell)}
+.timeline{display:flex;align-items:center;gap:8px}
+.timeline input{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--lora);border-color:var(--lora);color:#06131f}
+.mode-cell .btn.primary{background:var(--cell);border-color:var(--cell)}
+.mode-low .btn.primary{background:var(--low);border-color:var(--low)}
+.ctl label.check,.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+.check input{accent-color:var(--lora)}
+
+.cost{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.tile .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--mono);font-size:clamp(18px,1.6vw,22px);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile .v small{font-size:12px;color:var(--muted);font-weight:400;margin-left:4px}
+.tile.hero{grid-column:1/-1;border-left:4px solid var(--lora)}
+.mode-cell .tile.hero{border-left-color:var(--cell)}
+.mode-low .tile.hero{border-left-color:var(--low)}
+.tile.hero .v{font-size:clamp(24px,2.4vw,32px)}
+.breakdown{font-size:12px;color:var(--muted);display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-variant-numeric:tabular-nums}
+.breakdown span:nth-child(even){font-family:var(--mono);color:var(--text)}
+.delta{font-size:13px;color:var(--muted)}
+.delta b{color:var(--low);font-family:var(--mono)}
+.delta b.neg{color:var(--cell)}
+
+.chart{background:var(--surface-2);border-radius:10px;padding:10px 10px 6px}
+.chart h3{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .lg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:4px}
+.chart .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:2px}
+.chart text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.chart .tip{font-family:var(--mono);font-size:11px;fill:var(--text)}
+
+details{border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600}
+.consts{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px 8px;font-size:12px;margin-top:8px;align-items:center}
+.consts .h{color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:10px}
+.consts input{width:100%;background:var(--ground);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--mono);font-size:12px}
+.consts .n{color:var(--muted)}
+.foot{font-size:11px;color:var(--faint);line-height:1.4}
+.foot a{color:var(--muted)}
+.race{position:absolute;top:10px;left:12px;right:12px;background:rgba(12,22,27,.86);backdrop-filter:blur(6px);border:0;border-radius:12px;padding:10px 14px 12px;pointer-events:none}
+.race .rh{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px}
+.race .rh b{font-family:var(--mono);color:var(--text);text-transform:none;letter-spacing:0}
+.race .row{display:grid;grid-template-columns:150px 1fr 92px;gap:10px;align-items:center;margin:5px 0}
+.race .nm{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.race .nm i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.race .track{position:relative;height:18px;background:var(--surface-2);border-radius:5px;overflow:visible}
+.race .bar{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.race .gap{position:absolute;top:-3px;bottom:-3px;border-radius:4px;background:repeating-linear-gradient(135deg,rgba(254,201,35,.55) 0 6px,rgba(254,201,35,.18) 6px 12px);border:1.5px solid #fec923}
+.race .val{font-family:var(--mono);font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.race .sel .nm{color:#fff}.race .row:not(.sel) .val{color:var(--muted)}
+.race .sv{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+.race .sv b{font-family:var(--mono);font-size:17px;color:#fec923}
+.race .tie{margin-top:8px;padding:6px 10px;border-left:3px solid var(--cell);background:rgba(224,102,47,.12);border-radius:4px;font-size:13px;line-height:1.35;color:var(--text)}
+.race .tie b{color:#f4b294}
+.btn.example{background:rgba(254,201,35,.12);border-color:#fec923;color:#fec923;align-self:flex-start}
+.stage .legend{z-index:2}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div>
+      <h1>Build your own sensing network</h1>
+      <div class="sub">Slide the sensor count up, let the years roll, and watch what each architecture costs. Cost model from Dessimond et al. (2026), Front. Water 8:1906048.</div>
+    </div>
+    <div class="modes" role="group" aria-label="Architecture">
+      <button data-mode="cell" aria-pressed="false"><span class="dot"></span>Commercial cellular</button>
+      <button data-mode="high" aria-pressed="true"><span class="dot"></span>Open LoRaWAN · high budget</button>
+      <button data-mode="low" aria-pressed="false"><span class="dot"></span>Open LoRaWAN · low budget</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" id="stage" aria-label="Network map">
+      <svg id="map" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="gland" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#16282c"/><stop offset="1" stop-color="#12232a"/>
+          </linearGradient>
+          <linearGradient id="gwater" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#0f2d3d"/><stop offset="1" stop-color="#0a2231"/>
+          </linearGradient>
+          <pattern id="fieldrows" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(20)">
+            <rect width="14" height="14" fill="#223a2e"/><rect width="14" height="3" fill="#1d3428"/>
+          </pattern>
+          <pattern id="marshdots" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#1a3a33"/><circle cx="3" cy="4" r="1.2" fill="#24524a"/><circle cx="9" cy="9" r="1.2" fill="#24524a"/>
+          </pattern>
+          <radialGradient id="gcover"><stop offset="0" stop-color="#3f8fe8" stop-opacity=".16"/><stop offset=".85" stop-color="#3f8fe8" stop-opacity=".07"/><stop offset="1" stop-color="#3f8fe8" stop-opacity="0"/></radialGradient>
+        </defs>
+        <g id="terrain"></g>
+        <g id="coverage"></g>
+        <g id="towers"></g>
+        <g id="labels"></g>
+        <g id="links"></g>
+        <g id="chirps"></g>
+        <g id="nodes"></g>
+        <g id="gateways" style="pointer-events:all"></g>
+        <g id="packets"></g>
+      </svg>
+      <svg id="hud" aria-hidden="true"></svg>
+      <div class="race" id="race" aria-live="polite"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <button class="btn example" id="example">Paper example · 20 sensors, 5 years</button>
+      <div class="ctl">
+        <div class="row"><label for="nSensors">Sensors deployed</label><output id="oSensors">20</output></div>
+        <input type="range" id="nSensors" min="2" max="500" step="1" value="20">
+        <div class="row" style="font-size:12px;color:var(--muted)"><span id="oNodes">10 nodes · 1 gateway</span><span id="oSites">1 site</span></div>
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="years">Years of operation</label><output id="oYears">5.0 yr</output></div>
+        <div class="timeline">
+          <input type="range" id="years" class="time" min="0" max="10" step="0.1" value="5">
+          <button class="btn primary" id="play" aria-label="Play ten years">▶ Play</button>
+        </div>
+        <label class="check"><input type="checkbox" id="grow"> Grow the network while playing (from current count to <span id="oGrowTo">500</span>)</label>
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="spi">Sensors per node</label><output id="oSpi">2</output></div>
+        <input type="range" id="spi" min="1" max="6" step="1" value="2">
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="price">Sensor price (identical in all cases)</label><output id="oPrice">$600</output></div>
+        <input type="range" id="price" min="0" max="1500" step="50" value="600">
+      </div>
+
+      <div class="cost" id="cost"></div>
+      <div class="chart">
+        <h3>Cumulative cost over 10 years</h3>
+        <svg id="chart" viewBox="0 0 320 170" role="img" aria-label="Cumulative cost of ownership by architecture over ten years"></svg>
+        <div class="lg"><span><i style="background:var(--cell)"></i>Commercial cellular</span><span><i style="background:var(--lora)"></i>Open · high</span><span><i style="background:var(--low)"></i>Open · low</span></div>
+      </div>
+      <div class="delta" id="delta"></div>
+
+
+      <details>
+        <summary>Unit costs (edit to fit your quotes)</summary>
+        <div class="consts" id="consts"></div>
+        <p class="foot">Nodes = ⌈sensors ÷ sensors-per-node⌉. Gateways = ⌈nodes ÷ 10⌉, with at least one per site. Commercial: no gateways; each node is a cellular logger with an annual subscription. Open: LoRaWAN control interfaces plus gateways; backend is ThingsBoard + database + ChirpStack. Records assume a 5-minute sampling interval.</p>
+      </details>
+      <p class="foot">Environmental Sensing and Data Network · ECU Water Resources Center, in partnership with the Dept. of Earth, Environment and Planning. This is a planning model, not a quote.</p>
+    </aside>
+  </main>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(svgNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const params = new URLSearchParams(location.search);
+if (params.get('embed')) document.body.classList.add('embed');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- cost model (Table: cost comparison) ---------- */
+const C = {
+  cell: { label: 'Commercial cellular', node: 650, gw: 0, license: 0, cloud: 0, perSensor: 0, domain: 0, sub: 200 },
+  high: { label: 'Open LoRaWAN · high budget', node: 200, gw: 1000, license: 4999, cloud: 720, perSensor: 6, domain: 15, sub: 0 },
+  low:  { label: 'Open LoRaWAN · low budget', node: 80, gw: 380, license: 0, cloud: 0, perSensor: 0, domain: 15, sub: 0 },
+};
+const constDefs = [
+  ['node', 'Telemetry hardware per node ($)'], ['gw', 'Gateway ($)'], ['license', 'Software license, one-time ($)'],
+  ['cloud', 'Cloud hosting ($/yr)'], ['perSensor', 'Compute per sensor ($/yr)'], ['domain', 'IP / domain ($/yr)'], ['sub', 'Subscription per node ($/yr)'],
+];
+
+const state = {
+  mode: params.get('mode') || 'high',
+  sensors: +(params.get('n') || 20),
+  years: +(params.get('years') || 5),
+  spi: 2, price: 600, grow: false, playing: false,
+  received: 0, lost: 0, offline: new Set(),
+};
+
+/* ---------- geography: 8 sites loosely inspired by the ESDN ---------- */
+const SITES = [
+  { name: 'ECU campus', x: 430, y: 330, r: 62, kind: 'town' },
+  { name: 'East Research Station', x: 585, y: 300, r: 40, kind: 'suburb' },
+  { name: 'West Research Campus', x: 250, y: 380, r: 55, kind: 'forest' },
+  { name: 'Grifton', x: 355, y: 495, r: 38, kind: 'town' },
+  { name: 'Princeville', x: 300, y: 175, r: 38, kind: 'town' },
+  { name: 'Hyde County', x: 720, y: 430, r: 66, kind: 'field' },
+  { name: 'Coastal Studies Inst.', x: 860, y: 250, r: 44, kind: 'marsh' },
+  { name: 'Nags Head', x: 915, y: 140, r: 34, kind: 'marsh' },
+];
+const TOWERS = [{ x: 500, y: 240 }, { x: 290, y: 290 }, { x: 760, y: 340 }, { x: 880, y: 200 }, { x: 380, y: 560 }];
+const GW_RANGE = 96;         // map units; a gateway covers its site
+const MAX_NODES = 500;
+
+// deterministic PRNG so the layout is stable across sessions
+let seed = 20240601;
+const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+// node i belongs to a fixed site; sites unlock every 10 nodes (matches the 1:10 gateway ratio)
+const siteOf = i => i % (1 + Math.min(SITES.length - 1, Math.floor(i / 10)));
+const NODES = [];
+for (let i = 0; i < MAX_NODES; i++) {
+  const s = SITES[siteOf(i)];
+  const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * s.r * 0.92;
+  NODES.push({ i, site: siteOf(i), x: s.x + Math.cos(a) * d, y: s.y + Math.sin(a) * d * 0.8, next: 1 + rnd() * 3 });
+}
+
+/* ---------- derived quantities ---------- */
+function derive(sensors, spi) {
+  const nodes = Math.max(1, Math.ceil(sensors / spi));
+  const activeSites = new Set(); for (let i = 0; i < nodes; i++) activeSites.add(siteOf(i));
+  const gateways = Math.max(activeSites.size, Math.ceil(nodes / 10));
+  return { nodes, gateways, sites: activeSites.size };
+}
+function gatewayPositions(nodes) {
+  const { gateways, sites } = derive(nodes * state.spi, state.spi);
+  const active = [...new Set(NODES.slice(0, nodes).map(n => n.site))].sort((a, b) => a - b);
+  const out = [];
+  for (let j = 0; j < gateways; j++) {
+    const s = SITES[active[j % active.length]];
+    const k = Math.floor(j / active.length);        // extra gateways at a site spread out for overlap
+    const ang = k * 2.4, off = k ? s.r * 0.55 : 0;
+    out.push({ j, site: s, x: s.x + Math.cos(ang) * off, y: s.y - 6 + Math.sin(ang) * off * 0.7 });
+  }
+  return out;
+}
+function capex(mode, sensors) {
+  const c = C[mode], d = derive(sensors, state.spi);
+  const gw = mode === 'cell' ? 0 : d.gateways;
+  return { sensors: sensors * state.price, hardware: d.nodes * c.node + gw * c.gw, license: c.license, total: sensors * state.price + d.nodes * c.node + gw * c.gw + c.license };
+}
+function opexRate(mode, sensors) {
+  const c = C[mode], d = derive(sensors, state.spi);
+  return d.nodes * c.sub + c.cloud + c.perSensor * sensors + c.domain;
+}
+// sensors(t) along the trajectory: constant, or linear growth when "grow" is on during play
+function sensorsAt(t) {
+  if (!state.grow) return state.sensors;
+  const from = state.growFrom ?? state.sensors, to = 500;
+  return Math.round(from + (to - from) * Math.min(1, t / 10));
+}
+function cumulative(mode, T) {
+  const steps = 100; let opex = 0;
+  for (let k = 0; k < steps; k++) { const t = T * (k + 0.5) / steps; opex += opexRate(mode, sensorsAt(t)) * (T / steps); }
+  const cx = capex(mode, sensorsAt(T));
+  return { capex: cx, opex, total: cx.total + opex };
+}
+const fmt$ = v => '$' + Math.round(v).toLocaleString('en-US');
+const fmtN = v => Math.round(v).toLocaleString('en-US');
+
+/* ---------- terrain ---------- */
+const mapSvg = $('#map');
+function drawTerrain() {
+  const g = $('#terrain');
+  el('rect', { x: -2000, y: -2000, width: 5000, height: 5000, fill: 'url(#gland)' }, g);
+  // Pamlico Sound + Atlantic on the right
+  el('path', { d: 'M 800 -2000 L 3000 -2000 L 3000 3000 L 830 3000 C 790 520 850 420 800 330 C 760 250 830 120 800 0 C 780 -80 810 -160 800 -2000 Z', fill: 'url(#gwater)' }, g);
+  // barrier island
+  el('path', { d: 'M 905 40 C 925 110 935 220 918 320 C 912 350 900 340 902 300 C 912 210 905 120 890 60 Z', fill: 'var(--marsh)' }, g);
+  // Tar River meandering to the sound
+  el('path', { d: 'M -300 120 C 100 140 220 160 300 200 C 380 240 400 300 470 320 C 560 350 640 330 700 380 C 760 420 790 360 815 340', fill: 'none', stroke: 'var(--river)', 'stroke-width': 9, 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M 330 800 C 340 650 350 560 380 520 C 420 470 460 380 470 320', fill: 'none', stroke: 'var(--river)', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+  // site textures
+  for (const s of SITES) {
+    if (s.kind === 'town' || s.kind === 'suburb') {
+      const n = s.kind === 'town' ? 26 : 12;
+      for (let k = 0; k < n; k++) { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * s.r; const w = 8 + rnd() * 12, h = 6 + rnd() * 10; el('rect', { x: s.x + Math.cos(a) * d - w / 2, y: s.y + Math.sin(a) * d * 0.8 - h / 2, width: w, height: h, fill: 'var(--town)', rx: 1 }, g); }
+    } else if (s.kind === 'field') {
+      el('ellipse', { cx: s.x, cy: s.y, rx: s.r * 1.25, ry: s.r * 0.9, fill: 'url(#fieldrows)' }, g);
+    } else if (s.kind === 'forest') {
+      for (let k = 0; k < 40; k++) { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * s.r * 1.2; el('circle', { cx: s.x + Math.cos(a) * d, cy: s.y + Math.sin(a) * d * 0.85, r: 3 + rnd() * 5, fill: '#1c3a2c', opacity: .9 }, g); }
+    } else if (s.kind === 'marsh') {
+      el('ellipse', { cx: s.x - 6, cy: s.y + 10, rx: s.r * 1.1, ry: s.r * 0.9, fill: 'url(#marshdots)' }, g);
+    }
+  }
+  // third-party cell towers (always present, they are the carrier's)
+  const tg = $('#towers');
+  for (const t of TOWERS) {
+    const grp = el('g', { class: 'tower', transform: `translate(${t.x} ${t.y})`, opacity: .55 }, tg);
+    el('path', { d: 'M -7 14 L 0 -16 L 7 14 Z', fill: 'none', stroke: 'var(--cell)', 'stroke-width': 1.5 }, grp);
+    el('path', { d: 'M -4 4 L 4 4 M -2.5 -6 L 2.5 -6', stroke: 'var(--cell)', 'stroke-width': 1.5 }, grp);
+    el('circle', { cx: 0, cy: -17, r: 2, fill: 'var(--cell)' }, grp);
+  }
+}
+
+/* ---------- scene rendering ---------- */
+const nodeEls = new Map(), gwEls = new Map(), labelEls = new Map();
+let scene = { nodes: 0, gws: [] };
+function nodeShape(mode) { return mode === 'cell' ? 'M 0 -7 L 6 3 L 0 7 L -6 3 Z' : 'M -6 -6 L 6 -6 L 0 6 Z'; }
+function renderScene() {
+  const d = derive(state.sensors, state.spi);
+  const gNodes = $('#nodes'), gGw = $('#gateways'), gCov = $('#coverage'), gLab = $('#labels'), gLinks = $('#links');
+  // nodes
+  for (let i = 0; i < d.nodes; i++) {
+    if (!nodeEls.has(i)) {
+      const n = NODES[i];
+      const grp = el('g', { transform: `translate(${n.x} ${n.y}) scale(0)`, style: reduceMotion ? '' : 'transition:transform .45s cubic-bezier(.2,1.4,.4,1)' }, gNodes);
+      el('path', { d: nodeShape(state.mode), fill: state.mode === 'cell' ? 'var(--cell)' : (state.mode === 'low' ? 'var(--low)' : 'var(--lora)'), stroke: 'var(--ground)', 'stroke-width': 1.2 }, grp);
+      nodeEls.set(i, grp);
+      requestAnimationFrame(() => grp.setAttribute('transform', `translate(${n.x} ${n.y}) scale(1)`));
+    }
+  }
+  for (const [i, e] of nodeEls) if (i >= d.nodes) { e.remove(); nodeEls.delete(i); }
+  // recolor nodes on mode change
+  for (const [, e] of nodeEls) { const p = e.firstChild; p.setAttribute('d', nodeShape(state.mode)); p.setAttribute('fill', state.mode === 'cell' ? 'var(--cell)' : (state.mode === 'low' ? 'var(--low)' : 'var(--lora)')); }
+  // gateways + coverage (open modes only)
+  const gws = state.mode === 'cell' ? [] : gatewayPositions(d.nodes);
+  scene = { nodes: d.nodes, gws };
+  gCov.innerHTML = ''; gLinks.innerHTML = '';
+  const keep = new Set();
+  for (const gw of gws) {
+    keep.add(gw.j);
+    const off = state.offline.has(gw.j);
+    if (!off) el('circle', { cx: gw.x, cy: gw.y, r: GW_RANGE, fill: 'url(#gcover)', stroke: 'var(--lora)', 'stroke-opacity': .35, 'stroke-width': 1, 'stroke-dasharray': '3 4' }, gCov);
+    if (!gwEls.has(gw.j)) {
+      const grp = el('g', { class: 'gw', transform: `translate(${gw.x} ${gw.y}) scale(0)`, style: (reduceMotion ? '' : 'transition:transform .5s cubic-bezier(.2,1.4,.4,1);') + 'cursor:pointer' }, gGw);
+      el('circle', { r: 13, fill: 'transparent' }, grp);                 // hit target
+      el('path', { d: 'M -1.5 8 L -1.5 -10 L 1.5 -10 L 1.5 8 Z', fill: 'var(--gw)' }, grp);
+      el('path', { d: 'M -6 -10 L 6 -10 M -4 -6 L 4 -6', stroke: 'var(--gw)', 'stroke-width': 1.6 }, grp);
+      el('circle', { cx: 0, cy: 9, r: 3.2, fill: 'var(--gw)' }, grp);
+      el('title', {}, grp).textContent = 'LoRaWAN gateway';
+      gwEls.set(gw.j, grp);
+      requestAnimationFrame(() => grp.setAttribute('transform', `translate(${gw.x} ${gw.y}) scale(1)`));
+    } else {
+      const e = gwEls.get(gw.j); e.setAttribute('transform', `translate(${gw.x} ${gw.y}) scale(1)`);
+    }
+    gwEls.get(gw.j).setAttribute('opacity', off ? .35 : 1);
+  }
+  for (const [j, e] of gwEls) if (!keep.has(j)) { e.remove(); gwEls.delete(j); }
+  // faint links from nodes to their in-range gateways (open modes)
+  if (state.mode !== 'cell') for (let i = 0; i < d.nodes; i++) {
+    const n = NODES[i]; const g = nearestGateways(n, 1)[0];
+    if (g) el('line', { x1: n.x, y1: n.y, x2: g.x, y2: g.y, stroke: 'var(--lora)', 'stroke-opacity': .12, 'stroke-width': .8 }, gLinks);
+  }
+  // site labels
+  const activeSites = new Set(NODES.slice(0, d.nodes).map(n => n.site));
+  for (const [k, s] of SITES.entries()) {
+    if (activeSites.has(k) && !labelEls.has(k)) {
+      const t = el('text', { x: s.x, y: s.y + s.r * 0.8 + 16, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 11, 'font-family': 'var(--body)', 'font-weight': 600, 'letter-spacing': '.04em' }, gLab); t.textContent = s.name.toUpperCase(); labelEls.set(k, t);
+    } else if (!activeSites.has(k) && labelEls.has(k)) { labelEls.get(k).remove(); labelEls.delete(k); }
+  }
+  $('#towers').setAttribute('opacity', state.mode === 'cell' ? 1 : .35);
+  fitView();
+  renderLegend();
+  renderPanel();
+}
+function nearestGateways(n, max = 3) {
+  return scene.gws.filter(g => !state.offline.has(g.j)).map(g => ({ g, d: Math.hypot(g.x - n.x, g.y - n.y) })).filter(o => o.d <= GW_RANGE).sort((a, b) => a.d - b.d).slice(0, max).map(o => o.g);
+}
+function nearestTower(n) { return TOWERS.map(t => ({ t, d: Math.hypot(t.x - n.x, t.y - n.y) })).sort((a, b) => a.d - b.d)[0].t; }
+
+/* ---------- camera ---------- */
+let view = { x: 260, y: 200, w: 340, h: 211 }, target = { ...view };
+function fitView() {
+  const pts = NODES.slice(0, scene.nodes).map(n => [n.x, n.y]);
+  for (const g of scene.gws) pts.push([g.x - GW_RANGE, g.y - GW_RANGE], [g.x + GW_RANGE, g.y + GW_RANGE]);
+  if (state.mode === 'cell') for (const n of NODES.slice(0, scene.nodes)) { const t = nearestTower(n); pts.push([t.x, t.y - 20]); }
+  let x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0])), y0 = Math.min(...pts.map(p => p[1])), y1 = Math.max(...pts.map(p => p[1]));
+  const pad = 40; x0 -= pad; x1 += pad; y0 -= pad + 30; y1 += pad + 10;
+  const topFrac = 0.34;                       // the cost overlay covers about the top third of the stage
+  y0 -= (y1 - y0) * topFrac / (1 - topFrac);
+  const stage = $('#stage'), ar = stage.clientWidth / Math.max(1, stage.clientHeight);
+  let w = Math.max(x1 - x0, 300), h = Math.max(y1 - y0, 200);
+  if (w / h > ar) h = w / ar; else w = h * ar;
+  target = { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h };
+}
+function stepCamera() {
+  const k = reduceMotion ? 1 : 0.08;
+  view.x += (target.x - view.x) * k; view.y += (target.y - view.y) * k; view.w += (target.w - view.w) * k; view.h += (target.h - view.h) * k;
+  mapSvg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+}
+// world → stage pixel coordinates (for the HUD layer)
+function toScreen(x, y) { const st = $('#stage'); return [(x - view.x) / view.w * st.clientWidth, (y - view.y) / view.h * st.clientHeight]; }
+const scale = () => view.w / Math.max(1, $('#stage').clientWidth);   // world units per px
+
+/* ---------- legend ---------- */
+function renderLegend() {
+  $('#legend').innerHTML = state.mode === 'cell'
+    ? `<span><i style="background:var(--cell)"></i>Cellular logger</span><span><i style="background:transparent;border:1.5px solid var(--cell);border-radius:0;width:8px;height:8px"></i>Carrier tower</span>`
+    : `<span><i class="tri" style="border-top-color:${state.mode === 'low' ? 'var(--low)' : 'var(--lora)'}"></i>Sensor node</span><span><i style="background:var(--gw);border-radius:2px"></i>LoRaWAN gateway</span><span><i style="background:var(--lora-soft);border:1px dashed var(--lora)"></i>Coverage</span>`;
+}
+
+/* ---------- cost race: animated totals and the gap to commercial ---------- */
+const disp = { cell: 0, high: 0, low: 0 };
+let raceMax = 1;
+function stepRace() {
+  const tgt = { cell: cumulative('cell', state.years).total, high: cumulative('high', state.years).total, low: cumulative('low', state.years).total };
+  const k = reduceMotion ? 1 : 0.12;
+  for (const m in disp) disp[m] += (tgt[m] - disp[m]) * k;
+  raceMax += (Math.max(tgt.cell, tgt.high, tgt.low) * 1.04 - raceMax) * k;
+  const W = v => (v / raceMax * 100).toFixed(2) + '%';
+  const rows = [['cell', 'Commercial cellular', 'var(--cell)'], ['high', 'Open · high budget', 'var(--lora)'], ['low', 'Open · low budget', 'var(--low)']];
+  const sav = m => disp.cell - disp[m], pct = m => disp.cell > 0 ? Math.round(sav(m) / disp.cell * 100) : 0;
+  const sign = v => (v >= 0 ? 'saves ' : 'costs ') + fmt$(Math.abs(v));
+  $('#race').innerHTML = `<div class="rh"><span>Total cost after ${state.years.toFixed(1)} years · ${fmtN(state.sensors)} sensors</span><b>gap to commercial, hatched</b></div>` +
+    rows.map(([m, nm, col]) => `<div class="row${m === state.mode ? ' sel' : ''}"><div class="nm"><i style="background:${col}"></i>${nm}</div><div class="track"><div class="bar" style="width:${W(disp[m])};background:${col};opacity:${m === state.mode ? 1 : .7}"></div>${m !== 'cell' && sav(m) > 0 ? `<div class="gap" style="left:${W(disp[m])};width:${W(sav(m))}"></div>` : ''}</div><div class="val">${fmt$(disp[m])}</div></div>`).join('') +
+    `<div class="sv"><span>Open · high ${sign(sav('high'))} <b>${pct('high')}%</b></span><span>Open · low ${sign(sav('low'))} <b>${pct('low')}%</b></span></div>` +
+    `<div class="tie"><b>The fee is per logger.</b> Commercial users pack as many sensors as possible onto each logger, so fewer places get measured. On the open network an extra node is a one-time $80–200: spread them out.</div>`;
+}
+
+/* ---------- panel: costs & chart ---------- */
+function renderPanel() {
+  const d = derive(state.sensors, state.spi);
+  $('#oSensors').value = state.sensors;
+  $('#oNodes').textContent = `${d.nodes} node${d.nodes > 1 ? 's' : ''}${state.mode === 'cell' ? ' (cellular loggers)' : ` · ${d.gateways} gateway${d.gateways > 1 ? 's' : ''}`}`;
+  $('#oSites').textContent = `${d.sites} site${d.sites > 1 ? 's' : ''}`;
+  $('#oYears').value = state.years.toFixed(1) + ' yr';
+  $('#oSpi').value = state.spi; $('#oPrice').value = fmt$(state.price);
+  $('#oGrowTo').textContent = 500;
+  const cur = cumulative(state.mode, state.years), cell = cumulative('cell', state.years), high = cumulative('high', state.years), low = cumulative('low', state.years);
+  const recs = state.grow ? (() => { let r = 0; for (let k = 0; k < 100; k++) r += sensorsAt(state.years * (k + .5) / 100) * 105192 * state.years / 100; return r; })() : state.sensors * 105192 * state.years;
+  $('#cost').innerHTML = `
+    <div class="tile hero"><div class="k">${C[state.mode].label} · ${state.years.toFixed(1)}-year total</div><div class="v">${fmt$(cur.total)}</div>
+      <div class="breakdown"><span>Sensors</span><span>${fmt$(cur.capex.sensors)}</span><span>Telemetry hardware${state.mode === 'cell' ? ' (loggers)' : ' (interfaces + gateways)'}</span><span>${fmt$(cur.capex.hardware)}</span>${cur.capex.license ? `<span>Software license</span><span>${fmt$(cur.capex.license)}</span>` : ''}<span>Operating costs to date</span><span>${fmt$(cur.opex)}</span></div></div>
+    <div class="tile"><div class="k">Running cost</div><div class="v">${fmt$(opexRate(state.mode, sensorsAt(state.years)))}<small>/yr</small></div></div>
+    <div class="tile"><div class="k">Records collected</div><div class="v">${recs >= 1e6 ? (recs / 1e6).toFixed(1) + 'M' : fmtN(recs)}</div></div>`;
+  const saveHigh = cell.total - high.total, saveLow = cell.total - low.total;
+  $('#delta').innerHTML = `Versus commercial at this point: open high budget <b class="${saveHigh < 0 ? 'neg' : ''}">${saveHigh >= 0 ? 'saves ' : 'costs '}${fmt$(Math.abs(saveHigh))}</b>, open low budget <b class="${saveLow < 0 ? 'neg' : ''}">${saveLow >= 0 ? 'saves ' : 'costs '}${fmt$(Math.abs(saveLow))}</b>.`;
+  document.body.className = (document.body.classList.contains('embed') ? 'embed ' : '') + 'mode-' + state.mode;
+  renderChart();
+}
+let hoverYear = null;
+function renderChart() {
+  const svg = $('#chart'); svg.innerHTML = '';
+  const W = 320, H = 170, L = 44, R = 12, T = 10, B = 24, pw = W - L - R, ph = H - T - B;
+  const series = [['cell', 'var(--cell)'], ['high', 'var(--lora)'], ['low', 'var(--low)']];
+  const pts = {}; let ymax = 0;
+  for (const [m] of series) { pts[m] = []; for (let k = 0; k <= 20; k++) { const t = k / 2, v = cumulative(m, t).total; pts[m].push([t, v]); ymax = Math.max(ymax, v); } }
+  ymax = Math.ceil(ymax / 10000) * 10000 || 10000;
+  const X = t => L + t / 10 * pw, Y = v => T + ph - v / ymax * ph;
+  for (let k = 0; k <= 4; k++) { const v = ymax * k / 4; el('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: 'var(--line)', 'stroke-width': .8 }, svg); el('text', { x: L - 6, y: Y(v) + 3, 'text-anchor': 'end' }, svg).textContent = v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : '$' + Math.round(v / 1000) + 'k'; }
+  for (let t = 0; t <= 10; t += 2) el('text', { x: X(t), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = t + (t === 10 ? ' yr' : '');
+  for (const [m, c] of series) {
+    el('path', { d: pts[m].map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' '), fill: 'none', stroke: c, 'stroke-width': m === state.mode ? 2.6 : 1.6, 'stroke-linejoin': 'round', opacity: m === state.mode ? 1 : .8 }, svg);
+  }
+  // current year marker
+  const xy = X(state.years); el('line', { x1: xy, x2: xy, y1: T, y2: T + ph, stroke: 'var(--muted)', 'stroke-dasharray': '3 3', 'stroke-width': 1 }, svg);
+  for (const [m, c] of series) { const v = cumulative(m, state.years).total; el('circle', { cx: xy, cy: Y(v), r: m === state.mode ? 4.5 : 3.2, fill: c, stroke: 'var(--surface-2)', 'stroke-width': 1.5 }, svg); }
+  if (hoverYear != null) {
+    const hx = X(hoverYear); el('line', { x1: hx, x2: hx, y1: T, y2: T + ph, stroke: 'var(--text)', 'stroke-width': .8, opacity: .6 }, svg);
+    const rows = series.map(([m, c]) => [m, c, cumulative(m, hoverYear).total]);
+    const bx = hx > W / 2 ? hx - 118 : hx + 8, by = T + 2;
+    el('rect', { x: bx, y: by, width: 110, height: 48, rx: 6, fill: 'var(--ground)', stroke: 'var(--line)' }, svg);
+    el('text', { x: bx + 6, y: by + 12, class: 'tip' }, svg).textContent = `year ${hoverYear.toFixed(1)}`;
+    rows.forEach(([m, c, v], i) => { el('circle', { cx: bx + 9, cy: by + 23 + i * 11, r: 3, fill: c }, svg); el('text', { x: bx + 16, y: by + 26 + i * 11, class: 'tip' }, svg).textContent = fmt$(v); });
+  }
+  svg.onmousemove = e => { const r = svg.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * W; hoverYear = Math.max(0, Math.min(10, Math.round((x - L) / pw * 100) / 10)); renderChart(); };
+  svg.onmouseleave = () => { hoverYear = null; renderChart(); };
+}
+
+/* ---------- controls ---------- */
+function bind() {
+  document.querySelectorAll('.modes button').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; document.querySelectorAll('.modes button').forEach(x => x.setAttribute('aria-pressed', x === b)); state.offline.clear(); renderScene(); }));
+  $('#nSensors').addEventListener('input', e => { state.sensors = +e.target.value; state.growFrom = state.sensors; renderScene(); });
+  $('#years').addEventListener('input', e => { state.years = +e.target.value; renderPanel(); });
+  $('#spi').addEventListener('input', e => { state.spi = +e.target.value; renderScene(); });
+  $('#price').addEventListener('input', e => { state.price = +e.target.value; renderPanel(); });
+  $('#grow').addEventListener('change', e => { state.grow = e.target.checked; state.growFrom = state.sensors; renderPanel(); });
+  $('#play').addEventListener('click', togglePlay);
+  $('#example').addEventListener('click', () => {
+    state.sensors = 20; state.spi = 2; state.price = 600; state.years = 0; state.grow = false; $('#grow').checked = false;
+    $('#nSensors').value = 20; $('#spi').value = 2; $('#price').value = 600; $('#years').value = 0;
+    for (const m in disp) disp[m] = 0; raceMax = 1;
+    renderScene(); state.playing = false; playTo = 5; togglePlay();
+  });
+  const cg = $('#consts'); cg.innerHTML = '<div class="h"></div><div class="h" style="color:var(--cell)">Commercial</div><div class="h" style="color:var(--lora)">Open · high</div><div class="h" style="color:var(--low)">Open · low</div>';
+  for (const [k, label] of constDefs) { cg.insertAdjacentHTML('beforeend', `<div class="n">${label}</div>` + ['cell', 'high', 'low'].map(m => `<input type="number" id="c_${m}_${k}" value="${C[m][k]}" min="0" step="1" aria-label="${label} for ${C[m].label}">`).join('')); }
+  cg.addEventListener('input', e => { const [, m, k] = e.target.id.split('_'); if (C[m] && k in C[m]) { C[m][k] = +e.target.value || 0; renderPanel(); } });
+  addEventListener('resize', () => { fitView(); });
+  document.querySelector(`.modes button[data-mode="${state.mode}"]`)?.click();
+  $('#nSensors').value = state.sensors; $('#years').value = state.years;
+}
+let playT0 = null, playFrom = 0, playSensorsFrom = 20, playTo = 10;
+function togglePlay() {
+  if (state.playing) { state.playing = false; playTo = 10; $('#play').textContent = '▶ Play'; return; }
+  state.playing = true; $('#play').textContent = '❚❚ Pause';
+  if (state.years >= playTo) { state.years = 0; }
+  playFrom = state.years; playT0 = null; playSensorsFrom = state.sensors; state.growFrom = state.sensors;
+}
+function stepPlay(now) {
+  if (!state.playing) return;
+  if (playT0 == null) playT0 = now;
+  const dur = 12000;   // ten years in twelve seconds
+  const yrs = Math.min(playTo, playFrom + (now - playT0) / dur * 10);
+  state.years = yrs; $('#years').value = yrs;
+  if (state.grow) { const n = sensorsAt(yrs); if (n !== state.sensors) { state.sensors = n; $('#nSensors').value = n; renderScene(); } }
+  renderPanel();
+  if (yrs >= playTo) { state.playing = false; playTo = 10; $('#play').textContent = '↻ Replay'; }
+}
+
+/* ---------- main loop ---------- */
+let last = performance.now(), simClock = 0;
+function loop(now) {
+  const dt = Math.min(50, now - last); last = now; simClock += dt / 1000;
+  stepCamera(); stepPlay(now); stepRace();
+  requestAnimationFrame(loop);
+}
+drawTerrain(); bind(); renderScene(); view = { ...target }; requestAnimationFrame(loop);
+// accept commands from a parent deck (postMessage: {sensors, years, mode, play})
+addEventListener('message', ev => { const m = ev.data || {}; if (typeof m.sensors === 'number') { state.sensors = m.sensors; $('#nSensors').value = m.sensors; } if (typeof m.years === 'number') { state.years = m.years; $('#years').value = m.years; } if (m.mode && C[m.mode]) { document.querySelector(`.modes button[data-mode="${m.mode}"]`).click(); return; } if (m.play) togglePlay(); renderScene(); });
+})();
+</script>
+</body>
+</html>
