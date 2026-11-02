@@ -23,6 +23,7 @@
   --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
 html,body{background:var(--ground)}
+[hidden]:not([hidden=until-found i]){display:none!important}   /* reset.css sets aside{display:block}, which would override the hidden attribute */
 .reveal-viewport{background:var(--ground)}
 .reveal{font-family:var(--body);font-size:34px;color:var(--text);line-height:1.35}
 .reveal .slides section{text-align:left;padding:0}
