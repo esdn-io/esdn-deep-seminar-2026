@@ -7,12 +7,26 @@ Slides from the ECU Department of Earth, Environment and Planning (DEEP) seminar
 
 Paper: Dessimond, Moysey, Finney, Howard and Manda (2026), *Frontiers in Water* 8:1906048, [doi:10.3389/frwa.2026.1906048](https://doi.org/10.3389/frwa.2026.1906048).
 
+## Quick links
+
+Interactive
+- [LoRaWAN radio simulation](https://boris-edu.github.io/esdn-deep-seminar-2026/#/lora-sim) (slide 22): spreading factor, distance, interference and battery
+- [Cost simulator](https://boris-edu.github.io/esdn-deep-seminar-2026/#/cost-sim) (slide 40): network size vs 10-year cost
+- [Network and cost simulator, full page](https://boris-edu.github.io/esdn-deep-seminar-2026/simulator.html)
+
+Videos shown in the talk (ECU Water Resources Center on YouTube)
+- [Maintaining ECU’s Coastal Monitoring Network at CSI](https://www.youtube.com/watch?v=Zcs47dLXQXU)
+- [Fieldwork Highlights: Hydrology Research in Hyde County](https://www.youtube.com/watch?v=iw9eruNJVqs)
+- [Data Collection Efficiency with LoRaWAN Gateway & Starlink](https://www.youtube.com/watch?v=Z8JxpGETzQ8)
+- [Reconnaissance at Hyde County Field Site](https://www.youtube.com/watch?v=95zzxvV8oe0)
+
 ## Keys
 
 | Key | Action |
 |---|---|
 | ← → / Space | Previous / next |
 | T | Show or hide the speaker notes |
+| Q | Quick links: simulators and videos |
 | S | Speaker view (open the deck in two windows, press S in one) |
 | R | Replay the animation on the current slide |
 | F | Full screen |

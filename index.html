@@ -1345,7 +1345,7 @@ section.ci-in .ci-card{opacity:1;transform:none}
   <aside class="notes"><p><b>[~1 min]</b></p><ul><li>LoRa = radio technique; LoRaWAN = network protocol on top</li><li>Chart: range (x) vs data rate (y), both log scales</li><li>LoRaWAN alone in the far-range, low-rate corner: what field sensors need</li><li>Markers: measured maxima 2.7 km (campus), 22.1 km (water)</li></ul></aside>
 </section>
 
-<section data-state="lora">
+<section data-state="lora" id="lora-sim">
   <div class="eyebrow">Part 2 · The radio · How it works</div>
   <h2 class="lora-title">LoRaWAN: long range on very little power</h2>
   <div class="lora2">
@@ -1662,7 +1662,7 @@ section.ci-in .ci-card{opacity:1;transform:none}
   <aside class="notes"><p><b>Q&amp;A</b></p><ul><li data-reader="The ask: &quot;If you have a sensor in a drawer, or a site that needs data, come and see us. It is inexpensive to start, and the ESDN can help you set it up.&quot;"><b>Close with the ask:</b> "If you have a sensor in a drawer, or a site that needs data, come and see us. It is inexpensive to start, and the ESDN can help you set it up."</li><li data-reader="Thanks to the co-authors, NSF, and the residents and partners who host equipment">Thank the audience, co-authors, NSF, and the residents and partners who host equipment</li><li>QR code: the open-access paper</li><li data-reader="Backup slides follow">Leave this slide up during questions; backup slides follow</li></ul></aside>
 </section>
 
-<section class="sim" data-state="sim">
+<section class="sim" data-state="sim" id="cost-sim">
   <iframe id="simFrame" class="simframe" data-src="simulator.html?embed=1&n=20&years=5" title="ESDN network and cost simulator"></iframe>
   <aside class="notes"><p><b>backup · interactive cost simulator</b></p><ul><li><b>Analogy:</b> a per-logger fee is like paying a phone plan for every thermometer in your house, so you buy fewer thermometers</li><li data-reader="The yellow Paper example button sets 20 sensors, 5 years">Press the yellow <b>Paper example</b> button: 20 sensors, 5 years</li><li>Hatched yellow = savings vs commercial; lands on ≈ $28.5k / $24.3k / $13.3k (15% and 53% saved)</li><li>Drag sensors toward 500 and years to 10: the gap widens (per-device fees vs fixed platform cost)</li><li data-reader="Orange box: per-logger fees push sensors onto few loggers; an open network lets sensors go where the science needs them">Point at the orange box: per-logger fees push sensors onto few loggers; open network → place sensors where the science needs them</li></ul><p><b>If asked</b></p><ul><li>500 sensors = 250 nodes, 25 gateways</li><li>Unit costs editable at the bottom of the panel</li></ul></aside>
 </section>
@@ -3189,8 +3189,20 @@ Reveal.on('ready', e => { for (const f of e.currentSlide.querySelectorAll('ifram
   const css = document.createElement('style');
   css.textContent = `body{--rnw:clamp(300px,30vw,480px)}
   body.rn-open .reveal{width:calc(100% - var(--rnw))!important}
-  #rnBtn{position:fixed;left:16px;bottom:30px;z-index:7;font:600 13px var(--body);letter-spacing:.06em;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:5px 12px;cursor:pointer;opacity:.75}
-  #rnBtn:hover,#rnBtn[aria-pressed="true"]{opacity:1;color:var(--text);border-color:var(--gold-deep)}
+  /* desktop: tabs on the right edge (Notes above, Links below; no slide content there), riding the panel's edge when open */
+  .rn-tab{position:fixed;right:0;top:50%;z-index:7;display:flex;flex-direction:column;align-items:center;gap:14px;font:700 20px var(--body);letter-spacing:.06em;color:var(--text);background:var(--surface-2);border:1px solid var(--gold-deep);border-right:0;border-radius:8px 0 0 8px;padding:14px 7px 18px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:background .2s,color .2s}
+  #rnBtn{transform:translateY(calc(-100% - 6px))} #qlBtn{transform:translateY(6px)}
+  .rn-tab span{writing-mode:vertical-rl}
+  .rn-tab kbd{font:600 15px var(--mono);color:var(--gold);border:1px solid var(--gold-deep);border-radius:4px;padding:2px 6px;line-height:1.2}
+  .rn-tab:hover{background:var(--surface)} .rn-tab[aria-pressed="true"],.rn-tab[aria-expanded="true"]{background:var(--gold);color:#1a0f2e}
+  .rn-tab[aria-pressed="true"] kbd,.rn-tab[aria-expanded="true"] kbd{color:#1a0f2e;border-color:#1a0f2e}
+  body.rn-open .rn-tab{right:var(--rnw)}
+  #rnHint{position:fixed;right:70px;top:50%;z-index:8;max-width:340px;background:var(--gold);color:#1a0f2e;border-radius:8px;padding:14px 42px 14px 18px;font:500 17px/1.45 var(--body);box-shadow:0 10px 30px rgba(0,0,0,.45);opacity:0;transform:translate(-10px,-50%);transition:opacity .4s,transform .4s}
+  #rnHint.on{opacity:1;transform:translate(0,-50%)}
+  #rnHint::after{content:"";position:absolute;right:-8px;top:50%;margin-top:-8px;border:8px solid transparent;border-right:0;border-left-color:var(--gold)}
+  #rnHint b{font-weight:800} #rnHint kbd{font:700 15px var(--mono);background:#1a0f2e;color:var(--gold);border-radius:4px;padding:1px 7px}
+  #rnHint button{position:absolute;top:6px;right:8px;background:none;border:0;font:700 22px/1 var(--body);color:#1a0f2e;cursor:pointer;opacity:.6;padding:4px}
+  #rnHint button:hover{opacity:1}
   #rnPanel{position:fixed;top:0;right:0;bottom:20px;width:var(--rnw);z-index:7;box-sizing:border-box;overflow-y:auto;background:var(--surface);color:var(--muted);padding:30px 30px 40px;font:400 17px/1.5 var(--body)}
   #rnPanel .rn-eb{font:500 11px var(--eyebrow-font);letter-spacing:.16em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:.8em}
   #rnPanel h2{font:800 22px/1.2 var(--eyebrow-font);color:var(--text);margin:0 0 .8em;text-wrap:balance}
@@ -3198,10 +3210,17 @@ Reveal.on('ready', e => { for (const f of e.currentSlide.querySelectorAll('ifram
   #rnPanel p{margin:1.3em 0 .3em;font:500 11px var(--eyebrow-font);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
   #rnPanel p.rn-none{font:italic 400 16px var(--body);letter-spacing:0;text-transform:none}
   @media (max-width:760px){body{--rnw:45vh} #rnPanel{top:auto;left:0;width:auto;height:var(--rnw);padding:18px 16px 28px}
-    body.rn-open .reveal{width:100%!important;height:calc(100% - var(--rnw) - 20px)!important}}`;
+    body.rn-open .reveal{width:100%!important;height:calc(100% - var(--rnw) - 20px)!important}
+    .rn-tab{top:auto;bottom:30px;transform:none!important;flex-direction:row;gap:10px;font-size:16px;letter-spacing:.02em;border-right:1px solid var(--gold-deep);border-radius:6px;padding:8px 10px 8px 14px}
+    #rnBtn{right:auto;left:12px} #qlBtn{right:12px}
+    .rn-tab span{writing-mode:horizontal-tb} .rn-tab kbd{order:2}
+    body.rn-open #rnBtn{left:auto;right:12px;bottom:calc(var(--rnw) - 52px)} body.rn-open #qlBtn{display:none}
+    #rnHint{left:12px;right:12px;top:auto;bottom:86px;max-width:none;transform:translateY(10px)} #rnHint.on{transform:none}
+    #rnHint::after{right:auto;top:auto;left:38px;bottom:-8px;margin-top:0;border:8px solid transparent;border-bottom:0;border-top-color:var(--gold)}}`;
   document.head.appendChild(css);
-  const btn = Object.assign(document.createElement('button'), { id: 'rnBtn', type: 'button', textContent: 'Notes', title: 'Speaker notes (T)' });
+  const btn = Object.assign(document.createElement('button'), { id: 'rnBtn', className: 'rn-tab', type: 'button', innerHTML: '<kbd>T</kbd><span>Notes</span>', title: 'Speaker notes (T)' });
   btn.setAttribute('aria-pressed', 'false');
+  btn.setAttribute('aria-label', 'Speaker notes (T)');
   const panel = Object.assign(document.createElement('aside'), { id: 'rnPanel', hidden: true });
   panel.setAttribute('aria-label', 'Speaker notes');
   document.body.append(btn, panel);
@@ -3223,11 +3242,67 @@ Reveal.on('ready', e => { for (const f of e.currentSlide.querySelectorAll('ifram
     const h = panel.querySelector('h2'); if (t) h.textContent = t.textContent.trim(); else h.remove();
     panel.scrollTop = 0;
   };
-  const set = on => { panel.hidden = !on; document.body.classList.toggle('rn-open', on); btn.setAttribute('aria-pressed', String(on)); render(); Reveal.layout(); };
+  // first visit in this browser: point at the button for a few seconds (remembered; skipped with ?notes)
+  const HINT = 'esdn-notes-hint', openOnLoad = /[?&]notes\b/.test(location.search);
+  let seen = false; try { seen = localStorage.getItem(HINT) === '1'; } catch (e) {}
+  let hintDone = () => {};
+  if (!seen && !openOnLoad) {
+    const hint = Object.assign(document.createElement('div'), { id: 'rnHint',
+      innerHTML: 'Every slide has <b>speaker notes</b>: press <kbd>T</kbd> or click <b>Notes</b>. <kbd>Q</kbd> or <b>Links</b> opens the simulators and videos.<button type="button" aria-label="Dismiss">×</button>' });
+    hint.setAttribute('role', 'status');
+    document.body.append(hint);
+    hintDone = () => { if (!hint.isConnected) return; hint.classList.remove('on'); setTimeout(() => hint.remove(), 400); try { localStorage.setItem(HINT, '1'); } catch (e) {} };
+    hint.querySelector('button').addEventListener('click', hintDone);
+    setTimeout(() => hint.classList.add('on'), 1200);
+    setTimeout(hintDone, 12000);
+  }
+  const set = on => { panel.hidden = !on; document.body.classList.toggle('rn-open', on); btn.setAttribute('aria-pressed', String(on)); if (on) hintDone(); render(); Reveal.layout(); };
   btn.addEventListener('click', () => { set(panel.hidden); btn.blur(); });
   addEventListener('keydown', e => { if ((e.key === 't' || e.key === 'T') && !e.metaKey && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { e.preventDefault(); set(panel.hidden); } }, true);
   Reveal.on('slidechanged', render);
-  if (/[?&]notes\b/.test(location.search)) Reveal.isReady() ? set(true) : Reveal.on('ready', () => set(true));
+  addEventListener('rn:used', () => hintDone());
+  if (openOnLoad) Reveal.isReady() ? set(true) : Reveal.on('ready', () => set(true));
+})();
+
+/* ---- quick links: Q or the Links tab lists the two interactive slides, the full-page simulator and the YouTube sources ---- */
+(function quickLinks() {
+  const YT = [['Zcs47dLXQXU', 'Maintaining ECU’s Coastal Monitoring Network at CSI', 'Title slide, chapter dividers, maintenance'],
+    ['iw9eruNJVqs', 'Fieldwork Highlights: Hydrology Research in Hyde County', '“In the field” divider, maintenance'],
+    ['Z8JxpGETzQ8', 'Data Collection Efficiency with LoRaWAN Gateway & Starlink', 'Gateway siting'],
+    ['95zzxvV8oe0', 'Reconnaissance at Hyde County Field Site', 'Community']];
+  const css = document.createElement('style');
+  css.textContent = `#qlPop{position:fixed;right:70px;top:50%;transform:translateY(-50%);z-index:9;width:min(430px,calc(100vw - 100px));max-height:calc(100vh - 60px);overflow-y:auto;box-sizing:border-box;background:var(--surface);color:var(--text);border:1px solid var(--gold-deep);border-radius:10px;padding:18px 20px 14px;box-shadow:0 14px 40px rgba(0,0,0,.5);font:400 16px/1.35 var(--body)}
+  body.rn-open #qlPop{right:calc(var(--rnw) + 70px)}
+  #qlPop h3{font:500 11px var(--eyebrow-font);letter-spacing:.16em;text-transform:uppercase;color:var(--gold-deep);margin:0 0 .4em} #qlPop h3:not(:first-child){margin-top:1em}
+  #qlPop ul{list-style:none;margin:0;padding:0}
+  #qlPop a{display:block;padding:7px 10px;margin:0 -10px;border-radius:6px;color:var(--text);text-decoration:none;font-weight:600} #qlPop a:hover,#qlPop a:focus-visible{background:var(--surface-2);outline:none}
+  #qlPop a small{display:block;color:var(--muted);font-weight:400;font-size:13px;margin-top:2px}
+  @media (max-width:760px){#qlPop{right:12px;left:12px;top:auto;bottom:86px;transform:none;width:auto;max-height:70vh}}`;
+  document.head.appendChild(css);
+  const btn = Object.assign(document.createElement('button'), { id: 'qlBtn', className: 'rn-tab', type: 'button', innerHTML: '<kbd>Q</kbd><span>Links</span>', title: 'Simulators and videos (Q)' });
+  btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'qlPop');
+  const pop = Object.assign(document.createElement('nav'), { id: 'qlPop', hidden: true });
+  pop.setAttribute('aria-label', 'Quick links');
+  document.body.append(btn, pop);
+  const num = id => { const s = document.getElementById(id); return s ? 'Slide ' + (Reveal.getIndices(s).h + 1) + ' · ' : ''; };
+  const render = () => {
+    pop.innerHTML = `<h3>Interactive</h3><ul>
+      <li><a href="#/lora-sim">LoRaWAN radio simulation<small>${num('lora-sim')}spreading factor, distance, interference and battery</small></a></li>
+      <li><a href="#/cost-sim">Cost simulator<small>${num('cost-sim')}network size vs 10-year cost</small></a></li>
+      <li><a href="simulator.html" target="_blank" rel="noopener">Network and cost simulator, full page<small>Opens in a new tab</small></a></li></ul>
+      <h3>Videos · ECU Water Resources Center on YouTube</h3><ul>` +
+      YT.map(([id, t, where]) => `<li><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">${t}<small>Shown on: ${where}</small></a></li>`).join('') + '</ul>';
+  };
+  const set = on => { if (on) { render(); dispatchEvent(new Event('rn:used')); } pop.hidden = !on; btn.setAttribute('aria-expanded', String(on)); };
+  btn.addEventListener('click', () => { set(pop.hidden); btn.blur(); });
+  pop.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
+  document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target) && !btn.contains(e.target)) set(false); });
+  addEventListener('blur', () => { if (!pop.hidden) set(false); });   // clicks into the simulator iframe never reach this document
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'q' || e.key === 'Q') { e.preventDefault(); set(pop.hidden); }
+    else if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); e.stopPropagation(); set(false); }
+  }, true);
 })();
 
 /* ---- speaker view without pop-ups: open the deck in two windows, press S in the one on your laptop ---- */
